@@ -108,8 +108,8 @@ def main():
     parser.add_argument(
         '--emb_dim', type=int, default=128, help='embedding dimensions (default: 128)'
     )
-    parser.add_argument('--use_info', type=str, default=True)
-    parser.add_argument('--use_pretrain_emb', type=str, default=True)
+    parser.add_argument('--use_info', type=str, default=False)
+    parser.add_argument('--use_pretrain_emb', type=str, default=False)
 
     parser.add_argument(
         '--seed', type=int, default=42, help="Seed for splitting dataset."
