@@ -19,3 +19,8 @@ def plot(train_loss, val_auc):
     fig.legend(loc=1, bbox_to_anchor=(1, 1), bbox_transform=ax1.transAxes)
     plt.savefig("results/train_val.png")
 
+
+
+def analysis():
+    pass
+
