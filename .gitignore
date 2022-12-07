@@ -1,0 +1,10 @@
+__pycache__
+data/
+model/
+results/
+
+
+best_MLP_model.pt
+pretrained_emb_dict.pkl
+
+
