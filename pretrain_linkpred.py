@@ -151,10 +151,10 @@ def main():
         '--batch_size',
         type=int,
         default=1024,
-        help='input batch size for training (default: 32)',
+        help='input batch size for training (default: 1024)',
     )
     parser.add_argument(
-        '--epochs', type=int, default=3, help='number of epochs to train (default: 1)'
+        '--epochs', type=int, default=3, help='number of epochs to train (default: 10)'
     )
     parser.add_argument(
         '--lr', type=float, default=0.001, help='learning rate (default: 0.001)'
@@ -174,7 +174,7 @@ def main():
     parser.add_argument(
         '--dropout_ratio', type=float, default=0.5, help='dropout ratio (default: 0.5)'
     )
-    parser.add_argument('--gnn_type', type=str, default="GraphSAGE")
+    parser.add_argument('--gnn_type', type=str, default="GAT")
 
     parser.add_argument('--use_info', type=str, default=False)
 
@@ -183,12 +183,6 @@ def main():
     )
     parser.add_argument(
         '--runseed', type=int, default=0, help="Seed for running experiments."
-    )
-    parser.add_argument(
-        '--model_file_path',
-        type=str,
-        default='model/',
-        help='filename to output the pre-trained model',
     )
     parser.add_argument(
         '--num_workers',
@@ -246,7 +240,11 @@ def main():
         print(f"train loss in epoch {epoch} is: ", train_loss)
 
     # 2. save model
-    torch.save(model.state_dict(), args.model_file_path + model_name + ".pth")
+    model_name = (
+        str(args.gnn_type) + "_" + str(args.epochs) + "_" + str(args.emb_dim) + ".pth"
+    )
+    model_path = os.path.join('model', model_name)
+    torch.save(model.state_dict(), model_path)
 
     ## 3. save emb
     total_nodes = 0
@@ -260,14 +258,16 @@ def main():
     for key, value in emb.items():
         graph.nodes[key].data['feature'] = value
 
-    save_emb(graph, idx_node_map, idx_node_id_map)
+    save_emb(
+        graph, idx_node_map, idx_node_id_map, args.epochs, args.emb_dim, args.gnn_type
+    )
     ## if you want to read this emb file:
     # with open("pretrained_emb_dict.pkl",'rb') as f:
     #     node_emb_dict = pickle.load(f)
     #     print(node_emb_dict['GENE']['Rbm47'])
 
 
-def save_emb(graph, idx_node_map, idx_node_id_map):
+def save_emb(graph, idx_node_map, idx_node_id_map, epoch, emb_dim, gnn_type):
     node_feature_dict = {}
     for ntype in graph.ntypes:
         node_feature_dict[ntype] = {}
@@ -277,7 +277,17 @@ def save_emb(graph, idx_node_map, idx_node_id_map):
                 graph.nodes[ntype].data['feature'][i].cpu().tolist()
             )
 
-    with open("pretrained_emb_dict.pkl", 'wb') as f:
+    emb_name = (
+        "pretrained_emb_dict_"
+        + str(epoch)
+        + "_"
+        + str(emb_dim)
+        + "_"
+        + str(gnn_type)
+        + '.pkl'
+    )
+    emb_path = os.path.join('pretrain_emb', emb_name)
+    with open(emb_path, 'wb') as f:
         pickle.dump(node_feature_dict, f, pickle.HIGHEST_PROTOCOL)
 
 

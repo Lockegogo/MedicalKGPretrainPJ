@@ -1,7 +1,8 @@
 __pycache__
-data/BioKG/
+data/
 model/
 results/
+pretrain_emb/
 
 
 best_MLP_model.pt
