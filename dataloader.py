@@ -51,7 +51,7 @@ class DataLoaderFinetune:
 
         return idx_node_map, idx_node_id_map, dti
 
-    def to_graph(self, emb_dim, use_info, use_pretrain_emb,pretrained_emb_path=''):
+    def to_graph(self, emb_dim, use_info, use_pretrain_emb, pretrained_emb_path):
         """
         Data to Graph
         """

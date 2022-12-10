@@ -141,10 +141,11 @@ def main():
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.runseed)
 
+
     # set up dataset
     dataset_path = 'data/BioKG'
     dataset = DataLoaderFinetune(dPath=dataset_path)
-    pretrained_emb_path = 'pretrained_emb_dict.pkl'
+    pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_6_128_GCN.pkl'
     graph, idx_node_map, idx_node_id_map = dataset.to_graph(
         emb_dim=args.emb_dim,
         use_info=args.use_info,
@@ -168,7 +169,7 @@ def main():
     model.to(device)
     best_model_path = 'best_MLP_model.pt'
 
-    optimizer = torch.optim.Adam(list(model.parameters()))
+    optimizer = torch.optim.Adam(list(model.parameters()), lr=args.lr, weight_decay=args.decay)
 
     # 1. train
     train_loss, val_auc, best_accuracy = train(
