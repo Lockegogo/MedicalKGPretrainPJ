@@ -63,7 +63,7 @@ def train(
     best_accuracy = 0
     train_loss = []
     val_auc = []
-    for epoch in range(1, args.epochs + 1):
+    for epoch in tqdm(range(1, args.epochs + 1)):
         model.train()
 
         pos_score = model(train_pos_graph, train_pos_graph.ndata['feature'])
@@ -106,10 +106,10 @@ def main():
         '--decay', type=float, default=0, help='weight decay (default: 0)'
     )
     parser.add_argument(
-        '--emb_dim', type=int, default=512, help='embedding dimensions (default: 128)'
+        '--emb_dim', type=int, default=256, help='embedding dimensions (default: 128)'
     )
     parser.add_argument('--use_info', type=str, default=True)
-    parser.add_argument('--use_pretrain_emb', type=str, default=False)
+    parser.add_argument('--use_pretrain_emb', type=str, default=True)
 
     parser.add_argument(
         '--seed', type=int, default=42, help="Seed for splitting dataset."
@@ -145,7 +145,7 @@ def main():
     # set up dataset
     dataset_path = 'data/BioKG'
     dataset = DataLoaderFinetune(dPath=dataset_path)
-    pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_10_128_GCN.pkl'
+    pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_6_256_GraphSAGE.pkl'
     graph, idx_node_map, idx_node_id_map = dataset.to_graph(
         emb_dim=args.emb_dim,
         use_info=args.use_info,
