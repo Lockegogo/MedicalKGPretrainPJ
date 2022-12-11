@@ -106,10 +106,10 @@ def main():
         '--decay', type=float, default=0, help='weight decay (default: 0)'
     )
     parser.add_argument(
-        '--emb_dim', type=int, default=128, help='embedding dimensions (default: 128)'
+        '--emb_dim', type=int, default=512, help='embedding dimensions (default: 128)'
     )
     parser.add_argument('--use_info', type=str, default=True)
-    parser.add_argument('--use_pretrain_emb', type=str, default=True)
+    parser.add_argument('--use_pretrain_emb', type=str, default=False)
 
     parser.add_argument(
         '--seed', type=int, default=42, help="Seed for splitting dataset."
@@ -145,7 +145,7 @@ def main():
     # set up dataset
     dataset_path = 'data/BioKG'
     dataset = DataLoaderFinetune(dPath=dataset_path)
-    pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_6_128_GCN.pkl'
+    pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_10_128_GCN.pkl'
     graph, idx_node_map, idx_node_id_map = dataset.to_graph(
         emb_dim=args.emb_dim,
         use_info=args.use_info,
@@ -187,7 +187,7 @@ def main():
     print("best val auc is {}".format(best_accuracy))
 
     # 2. visualization
-    plot(train_loss, val_auc)
+    # plot(train_loss, val_auc)
 
     # 3. test
     model = torch.load(best_model_path)

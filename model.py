@@ -32,24 +32,27 @@ class GAT(nn.Module):
         super().__init__()
         self.conv1 = dglnn.HeteroGraphConv(
             {
-                rel: dglnn.GATConv(in_feat, hidden_feat, num_heads=3)
+                rel: dglnn.GATConv(in_feat, hidden_feat, num_heads=2)
                 for rel in rel_names
             },
             aggregate='sum',
         )
         self.conv2 = dglnn.HeteroGraphConv(
             {
-                rel: dglnn.GATConv(hidden_feat * 3, out_feat, num_heads=1)
+                rel: dglnn.GATConv(hidden_feat * 2, out_feat, num_heads=1)
                 for rel in rel_names
             },
             aggregate='sum',
         )
+        self.hidden_feat = hidden_feat
+        self.out_feat = out_feat
 
     def forward(self, blocks, x):
+
         x = self.conv1(blocks[0], x)
-        x = {k: F.relu(v.reshape(-1, 128 * 3)) for k, v in x.items()}
+        x = {k: F.relu(v.reshape(-1, self.hidden_feat * 2)) for k, v in x.items()}
         x = self.conv2(blocks[1], x)
-        x = {k: v.reshape(-1, 128) for k, v in x.items()}
+        x = {k: v.reshape(-1, self.out_feat) for k, v in x.items()}
         return x
 
 
@@ -71,12 +74,14 @@ class GraphSAGE(nn.Module):
             },
             aggregate='sum',
         )
+        self.hidden_feat = hidden_feat
+        self.out_feat = out_feat
 
     def forward(self, blocks, x):
         x = self.conv1(blocks[0], x)
-        x = {k: F.relu(v.reshape(-1, 128)) for k, v in x.items()}
+        x = {k: F.relu(v.reshape(-1, self.hidden_feat)) for k, v in x.items()}
         x = self.conv2(blocks[1], x)
-        x = {k: v.reshape(-1, 128) for k, v in x.items()}
+        x = {k: v.reshape(-1, self.out_feat) for k, v in x.items()}
         return x
 
 

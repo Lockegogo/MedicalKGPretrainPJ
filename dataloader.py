@@ -122,54 +122,57 @@ class DataLoaderFinetune:
 
         mms = MinMaxScaler(feature_range=(0, 1))
 
+        if emb_dim <= drug_feats.shape[-1]:
+            drug_feats_scaled2 = PCA(n_components=emb_dim).fit_transform(drug_feats)
+            drug_feats_scaled3 = mms.fit_transform(drug_feats_scaled2)
+            fp_df = pd.concat([fp_id, pd.DataFrame(drug_feats_scaled3)], axis=1)
+            fp_df.rename(columns={'head': 'drug_id'}, inplace=True)
+
+            notFind = 0
+            for i in range(graph.num_nodes('DRUG')):
+
+                drug_name = idx_node_id_map['DRUG'][i]
+                if drug_name in fp_df['drug_id'].values:
+                    temp = (
+                        fp_df[fp_df['drug_id'] == drug_name]
+                        .iloc[0, 1:]
+                        .values.astype('float')
+                    )
+                    temp = torch.tensor(temp)
+                    graph.nodes['DRUG'].data['feature'][i] = temp
+                else:
+                    notFind += 1
+
+            # print(
+            #     "The number of DRUG nodes for which no structural information was found is: ",
+            #     notFind,
+            # )
+
         pro_feats_scaled = mms.fit_transform(pro_feats)
-        pro_feats_scaled2 = PCA(n_components=emb_dim).fit_transform(pro_feats_scaled)
-        pro_feats_scaled3 = mms.fit_transform(pro_feats_scaled2)
-        prodes_df = pd.concat([pro_id, pd.DataFrame(pro_feats_scaled3)], axis=1)
 
-        drug_feats_scaled2 = PCA(n_components=emb_dim).fit_transform(drug_feats)
-        drug_feats_scaled3 = mms.fit_transform(drug_feats_scaled2)
-        fp_df = pd.concat([fp_id, pd.DataFrame(drug_feats_scaled3)], axis=1)
-        fp_df.rename(columns={'head': 'drug_id'}, inplace=True)
+        if emb_dim <= pro_feats_scaled.shape[-1]:
+            pro_feats_scaled2 = PCA(n_components=emb_dim).fit_transform(pro_feats_scaled)
+            pro_feats_scaled3 = mms.fit_transform(pro_feats_scaled2)
+            prodes_df = pd.concat([pro_id, pd.DataFrame(pro_feats_scaled3)], axis=1)
 
-        notFind = 0
-        for i in range(graph.num_nodes('DRUG')):
+            notFind = 0
+            for i in range(graph.num_nodes('PROTEIN')):
+                protein_name = idx_node_id_map['PROTEIN'][i]
+                if protein_name in prodes_df['pro_id'].values:
+                    temp = (
+                        prodes_df[prodes_df['pro_id'] == protein_name]
+                        .iloc[0, 1:]
+                        .values.astype('float')
+                    )
+                    temp = torch.tensor(temp)
+                    graph.nodes['PROTEIN'].data['feature'][i] = temp
+                else:
+                    notFind += 1
 
-            drug_name = idx_node_id_map['DRUG'][i]
-            if drug_name in fp_df['drug_id'].values:
-                temp = (
-                    fp_df[fp_df['drug_id'] == drug_name]
-                    .iloc[0, 1:]
-                    .values.astype('float')
-                )
-                temp = torch.tensor(temp)
-                graph.nodes['DRUG'].data['feature'][i] = temp
-            else:
-                notFind += 1
-
-        # print(
-        #     "The number of DRUG nodes for which no structural information was found is: ",
-        #     notFind,
-        # )
-
-        notFind = 0
-        for i in range(graph.num_nodes('PROTEIN')):
-            protein_name = idx_node_id_map['PROTEIN'][i]
-            if protein_name in prodes_df['pro_id'].values:
-                temp = (
-                    prodes_df[prodes_df['pro_id'] == protein_name]
-                    .iloc[0, 1:]
-                    .values.astype('float')
-                )
-                temp = torch.tensor(temp)
-                graph.nodes['PROTEIN'].data['feature'][i] = temp
-            else:
-                notFind += 1
-
-        # print(
-        #     "The number of PROTEIN nodes for which no structural information was found is: ",
-        #     notFind,
-        # )
+            # print(
+            #     "The number of PROTEIN nodes for which no structural information was found is: ",
+            #     notFind,
+            # )
 
         return graph
 
@@ -214,8 +217,8 @@ class DataLoaderFinetune:
 if __name__ == "__main__":
     dataset_path = 'data/BioKG'
     dti = DataLoaderFinetune(dPath=dataset_path)
-    pretrained_emb_path = 'pretrained_emb_dict.pkl'
-    g, idx_node_map, idx_node_id_map = dti.to_graph(emb_dim=128, use_info=True, pretrained_emb_path=pretrained_emb_path)
+    pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_10_128_GCN.pkl'
+    g, idx_node_map, idx_node_id_map = dti.to_graph(emb_dim=256, use_info=True, use_pretrain_emb=False, pretrained_emb_path=pretrained_emb_path)
 
 
     ## test
