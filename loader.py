@@ -17,6 +17,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import os
+import pickle
 
 
 class BioDataset:
@@ -62,7 +63,7 @@ class BioDataset:
 
         return idx_node_map, idx_node_id_map, edges_u_v
 
-    def to_graph(self, emb_dim, use_info):
+    def to_graph(self, emb_dim, use_info, use_linkpred_emb=False, use_SHGP_emb=False):
         """
         Data to Heterogeneous Graph
         """
@@ -98,6 +99,13 @@ class BioDataset:
         # use known information to initialize node emb
         if use_info:
             graph = self.info_init(graph, emb_dim, idx_node_id_map)
+
+        # use pretrained emb to initialize node emb
+        if use_linkpred_emb:
+            graph = self.pretrained_init(graph, emb_dim, idx_node_id_map, use_linkpred=True, use_SHGP=False)
+
+        if use_SHGP_emb:
+            graph = self.pretrained_init(graph, emb_dim, idx_node_id_map, use_linkpred=False, use_SHGP=True)
 
         return graph, idx_node_map, idx_node_id_map
 
@@ -183,6 +191,25 @@ class BioDataset:
             "The number of PROTEIN nodes for which no structural information was found is: ",
             notFind,
         )
+
+        return graph
+
+    def pretrained_init(self, graph, emb_dim, idx_node_id_map, use_linkpred, use_SHGP):
+        if use_linkpred:
+            # 使用链接预测预训练的节点向量进行初始化
+            pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_6_256_GAT.pkl'
+        elif use_SHGP:
+            pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_SHGP_1000.pkl'
+
+        # read emb dict
+        with open(pretrained_emb_path, 'rb') as f:
+            node_emb_dict = pickle.load(f)
+
+            for ntype in graph.ntypes:
+                for i in range(graph.num_nodes(ntype)):
+                    node_name = idx_node_id_map[ntype][i]
+                    if node_name in node_emb_dict[ntype]:
+                        graph.nodes[ntype].data['feature'][i] = torch.FloatTensor(node_emb_dict[ntype][node_name])
 
         return graph
 

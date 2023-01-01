@@ -90,7 +90,7 @@ class GNN(nn.Module):
     Output: representations
     """
     def __init__(
-        self, in_features, hidden_features, out_features, etypes, gnn_type="GraphSAGE"
+        self, in_features, hidden_features, out_features, etypes, gnn_type="GAT"
     ):
         super(GNN, self).__init__()
 

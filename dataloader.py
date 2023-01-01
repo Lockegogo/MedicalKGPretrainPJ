@@ -217,7 +217,7 @@ class DataLoaderFinetune:
 if __name__ == "__main__":
     dataset_path = 'data/BioKG'
     dti = DataLoaderFinetune(dPath=dataset_path)
-    pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_10_128_GCN.pkl'
+    pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_6_512_GCN.pkl'
     g, idx_node_map, idx_node_id_map = dti.to_graph(emb_dim=256, use_info=True, use_pretrain_emb=False, pretrained_emb_path=pretrained_emb_path)
 
 

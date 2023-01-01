@@ -145,7 +145,7 @@ def main():
     # set up dataset
     dataset_path = 'data/BioKG'
     dataset = DataLoaderFinetune(dPath=dataset_path)
-    pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_6_256_GraphSAGE.pkl'
+    pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_linkpred_SHGP_single_100.pkl'
     graph, idx_node_map, idx_node_id_map = dataset.to_graph(
         emb_dim=args.emb_dim,
         use_info=args.use_info,
