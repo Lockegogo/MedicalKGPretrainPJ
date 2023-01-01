@@ -58,13 +58,21 @@ def init_lpa(adj_dict, ft_dict, target_type, num_cluster, device):
     run_num = 1
     for i in range(run_num):
         init_label_dict = gen_rand_label(ft_dict, num_cluster)
-        pseudo_label_dict = lpa(init_label_dict, adj_dict, target_type, num_cluster, device)
+        pseudo_label_dict = lpa(
+            init_label_dict, adj_dict, target_type, num_cluster, device
+        )
 
     return pseudo_label_dict
 
 
 def att_lpa(
-    adj_dict, init_pseudo_label, attention_dict, target_type, num_cluster, device, max_iter=1000
+    adj_dict,
+    init_pseudo_label,
+    attention_dict,
+    target_type,
+    num_cluster,
+    device,
+    max_iter=1000,
 ):
 
     pseudo_label_dict = copy.deepcopy(init_pseudo_label)

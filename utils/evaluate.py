@@ -8,34 +8,38 @@ from sklearn.metrics import f1_score
 from .logreg import LogReg
 
 
-
-def evaluate(embeds, idx_train, idx_val, idx_test, labels, num_class,isTest=True):
-    print("----------------------------strat evaluating----------------------------------")
+def evaluate(embeds, idx_train, idx_val, idx_test, labels, num_class, isTest=True):
+    print(
+        "----------------------------strat evaluating----------------------------------"
+    )
     hid_units = embeds.shape[1]
     nb_classes = num_class
     xent = nn.CrossEntropyLoss()
     train_embs = embeds[idx_train]
     val_embs = embeds[idx_val]
     test_embs = embeds[idx_test]
-    train_lbls =labels[idx_train]
+    train_lbls = labels[idx_train]
     val_lbls = labels[idx_val]
     test_lbls = labels[idx_test]
 
-    run_num=10
-    epoch_num=50
+    run_num = 10
+    epoch_num = 50
     accs = []
     micro_f1s = []
     macro_f1s = []
     macro_f1s_val = []
-    micro_f1s_val=[]
+    micro_f1s_val = []
     for _ in range(run_num):
         log = LogReg(hid_units, nb_classes)
         opt = torch.optim.Adam(log.parameters(), lr=0.01, weight_decay=0.0)
         log.cuda()
 
-        val_accs = []; test_accs = []
-        val_micro_f1s = []; test_micro_f1s = []
-        val_macro_f1s = []; test_macro_f1s = []
+        val_accs = []
+        test_accs = []
+        val_micro_f1s = []
+        test_micro_f1s = []
+        val_macro_f1s = []
+        test_macro_f1s = []
 
         for iter_ in range(epoch_num):
             # train
@@ -77,12 +81,18 @@ def evaluate(embeds, idx_train, idx_val, idx_test, labels, num_class,isTest=True
 
         max_iter = val_macro_f1s.index(max(val_macro_f1s))
         macro_f1s.append(test_macro_f1s[max_iter])
-        macro_f1s_val.append(val_macro_f1s[max_iter]) ###
-
+        macro_f1s_val.append(val_macro_f1s[max_iter])  ###
 
         max_iter = val_micro_f1s.index(max(val_micro_f1s))
         micro_f1s.append(test_micro_f1s[max_iter])
         micro_f1s_val.append(val_micro_f1s[max_iter])
-    
+
     if isTest:
-        print("\t[Classification-test] Macro-F1: {:.4f} ({:.4f}) | Micro-F1: {:.4f} ({:.4f})".format(np.mean(macro_f1s), np.std(macro_f1s), np.mean(micro_f1s), np.std(micro_f1s)))
+        print(
+            "\t[Classification-test] Macro-F1: {:.4f} ({:.4f}) | Micro-F1: {:.4f} ({:.4f})".format(
+                np.mean(macro_f1s),
+                np.std(macro_f1s),
+                np.mean(micro_f1s),
+                np.std(micro_f1s),
+            )
+        )

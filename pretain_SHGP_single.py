@@ -58,7 +58,7 @@ def main():
     parser.add_argument(
         '--epochs',
         type=int,
-        default=100,
+        default=1000,
         help='number of epochs to train (default: 6)',
     )
     parser.add_argument('--warm_epochs', type=int, default=10)
