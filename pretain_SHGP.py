@@ -141,7 +141,6 @@ def main():
 
     ft_dict, adj_dict = load_data(graph)
 
-
     def train(target_type, emb):
 
         num_cluster = int(
@@ -190,9 +189,11 @@ def main():
         for epoch in range(args.epochs):
             model.train()
             optimizer.zero_grad()
+            ## 1. logits: Predictions
             logits, embd, attention_dict = model(ft_dict, adj_dict)
             target_embd = embd[target_type]
 
+            ## 2. Pseudo-labels
             if epoch == 0:
                 init_pseudo_label = init_lpa(
                     adj_dict, ft_dict, target_type, num_cluster, device
@@ -251,7 +252,6 @@ def main():
 
     # save emb
     save_emb(emb, idx_node_map, idx_node_id_map, args.epochs, args.use_linkpred_emb)
-
 
 
 def save_emb(emb, idx_node_map, idx_node_id_map, epoch, use_linkpred_emb):

@@ -8,6 +8,7 @@ def gen_rand_label(ft_dict, num_cluster):
     for k in ft_dict:
         rand_label = torch.randint(num_cluster, (ft_dict[k].shape[0],))
         rand_label = F.one_hot(rand_label, num_cluster).type(dtype=torch.float32)
+        # rand_label (one-hot): node_num * num_cluster
         rand_label_dict[k] = rand_label
 
     return rand_label_dict
@@ -32,6 +33,7 @@ def lpa(init_label_dict, adj_dict, target_type, num_cluster, device, max_iter=10
             k_nbs_label_list = []
             for kk in net_schema[k]:
                 try:
+                    # soft_label: kNode_num * num_cluster
                     soft_label = torch.spmm(adj_dict[k][kk], pseudo_label_dict[kk])
                 except KeyError as ke:
                     soft_label = torch.spmm(adj_dict[k][kk], pseudo_label_dict[k])
@@ -42,6 +44,7 @@ def lpa(init_label_dict, adj_dict, target_type, num_cluster, device, max_iter=10
             )
 
             new_k_label = new_k_label.sum(1)
+            # 选择邻居节点最多的类别作为自己的类别
             new_k_label = torch.argmax(new_k_label, dim=1)
             new_k_label = F.one_hot(new_k_label, num_cluster).type(dtype=torch.float32)
             pseudo_label_dict[k] = new_k_label
@@ -82,6 +85,7 @@ def att_lpa(
         pseudo_label_dict[k] = pseudo_label_dict[k].to(device)
     for k in current_label_dict:
         current_label_dict[k] = current_label_dict[k].to(device)
+
     net_schema = dict([(k, list(adj_dict[k].keys())) for k in adj_dict.keys()])
     target_label_list = []
     soft_label = 0

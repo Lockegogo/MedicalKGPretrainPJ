@@ -63,7 +63,8 @@ class BioDataset:
 
         return idx_node_map, idx_node_id_map, edges_u_v
 
-    def to_graph(self, emb_dim, use_info, use_linkpred_emb=False, use_SHGP_emb=False):
+    # 修改一下，改成继续用之前的 emb
+    def to_graph(self, emb_dim, use_info, use_linkpred_emb=False, use_SRRSC_emb=False):
         """
         Data to Heterogeneous Graph
         """
@@ -102,10 +103,10 @@ class BioDataset:
 
         # use pretrained emb to initialize node emb
         if use_linkpred_emb:
-            graph = self.pretrained_init(graph, emb_dim, idx_node_id_map, use_linkpred=True, use_SHGP=False)
+            graph = self.pretrained_init(graph, emb_dim, idx_node_id_map, use_linkpred=True, use_SRRSC=False)
 
-        if use_SHGP_emb:
-            graph = self.pretrained_init(graph, emb_dim, idx_node_id_map, use_linkpred=False, use_SHGP=True)
+        if use_SRRSC_emb:
+            graph = self.pretrained_init(graph, emb_dim, idx_node_id_map, use_linkpred=False, use_SRRSC=True)
 
         return graph, idx_node_map, idx_node_id_map
 
@@ -194,12 +195,12 @@ class BioDataset:
 
         return graph
 
-    def pretrained_init(self, graph, emb_dim, idx_node_id_map, use_linkpred, use_SHGP):
+    def pretrained_init(self, graph, emb_dim, idx_node_id_map, use_linkpred, use_SRRSC):
         if use_linkpred:
             # 使用链接预测预训练的节点向量进行初始化
             pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_6_256_GAT.pkl'
-        elif use_SHGP:
-            pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_SHGP_1000.pkl'
+        elif use_SRRSC:
+            pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_SRRSC_10000.pkl'
 
         # read emb dict
         with open(pretrained_emb_path, 'rb') as f:

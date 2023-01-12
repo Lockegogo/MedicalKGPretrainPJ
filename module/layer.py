@@ -70,31 +70,44 @@ class HeteAggregateLayer(nn.Module):
 
     def forward(self, x_dict, adj_dict):
         attention_curr_k = 0
+        # self_ft: targetNode_number * out_shape
         self_ft = torch.mm(x_dict[self.curr_k], self.w_self)
 
         nb_ft_list = [self_ft]
         nb_name = [self.curr_k + '_self']
         for k in self.nb_list:
             try:
+                ## 1. Projection
+                # nb_ft: neighborNode_number * out_shape
                 nb_ft = torch.mm(x_dict[k], self.W_rel[k])
             except KeyError as ke:
                 nb_ft = torch.mm(x_dict[self.curr_k], self.W_rel[k])
             finally:
+                ## 2. Object-level Aggregation
+                # torch.spmm: sparse matrix multiplication
+                # nb_ft: targetNode_number * out_shape
                 nb_ft = torch.spmm(adj_dict[k], nb_ft)
                 nb_ft_list.append(nb_ft)
                 nb_name.append(k)
 
         if self.type_fusion == 'mean':
-            agg_nb_ft = torch.cat([nb_ft.unsqueeze(1) for nb_ft in nb_ft_list], 1).mean(
-                1
-            )
+            agg_nb_ft = torch.cat([nb_ft.unsqueeze(1) for nb_ft in nb_ft_list], 1).mean(1)
             attention = []
         elif self.type_fusion == 'att':
+            ## 3. Type-level Aggregation
+            # 将 self_feature map 到 Q 矩阵
+            # att_query: (targetNode_number * neighbor_number) * att_size
+            # repeat: 沿着指定的维度复制 tensor
             att_query = torch.mm(self_ft, self.w_query).repeat(len(nb_ft_list), 1)
+            # [(targetNode_number * neighbor_number) * out_shape] X [out_shape, att_size]
+            # [(targetNode_number * neighbor_number) * att_size]
             att_keys = torch.mm(torch.cat(nb_ft_list, 0), self.w_keys)
+            # att_input: (targetNode_number * neighbor_number) * (att_size * 2)
             att_input = torch.cat([att_keys, att_query], 1)
             att_input = F.dropout(att_input, 0.5, training=self.training)
+            # e: (targetNode_number * neighbor_number) * 1
             e = F.elu(torch.matmul(att_input, self.w_att))
+            # attention: targetNode_number * neighbor_number
             attention = F.softmax(
                 e.view(len(nb_ft_list), -1).transpose(0, 1), dim=1
             )  # 4025*3

@@ -177,7 +177,7 @@ def main():
     parser.add_argument('--gnn_type', type=str, default="GAT")
 
     parser.add_argument('--use_info', type=str, default=False)
-    parser.add_argument('--use_SHGP_emb', type=str, default=True)
+    parser.add_argument('--use_SRRSC_emb', type=str, default=False)
 
     parser.add_argument(
         '--seed', type=int, default=42, help="Seed for splitting dataset."
@@ -207,7 +207,7 @@ def main():
     dataset_path = 'data/BioKG'
     dataset = BioDataset(dPath=dataset_path)
     graph, idx_node_map, idx_node_id_map = dataset.to_graph(
-        emb_dim=args.emb_dim, use_info=args.use_info, use_SHGP_emb=args.use_SHGP_emb,
+        emb_dim=args.emb_dim, use_info=args.use_info
     )
     dataloader = blockloader(
         graph, batch_size=args.batch_size, num_workers=args.num_workers
@@ -266,7 +266,7 @@ def main():
         args.epochs,
         args.emb_dim,
         args.gnn_type,
-        args.use_SHGP_emb,
+        args.use_SRRSC_emb,
     )
     ## if you want to read this emb file:
     # with open("pretrained_emb_dict.pkl",'rb') as f:
@@ -275,7 +275,7 @@ def main():
 
 
 def save_emb(
-    graph, idx_node_map, idx_node_id_map, epoch, emb_dim, gnn_type, use_SHGP_emb
+    graph, idx_node_map, idx_node_id_map, epoch, emb_dim, gnn_type, use_SRRSC_emb
 ):
     node_feature_dict = {}
     for ntype in graph.ntypes:
@@ -286,8 +286,8 @@ def save_emb(
                 graph.nodes[ntype].data['feature'][i].cpu().tolist()
             )
 
-    if use_SHGP_emb:
-        emb_name = "pretrained_emb_dict_SHGP_linkpred_" + str(epoch) + '.pkl'
+    if use_SRRSC_emb:
+        emb_name = "pretrained_emb_dict_SRRSC_linkpred_" + str(epoch) + '.pkl'
     else:
         emb_name = (
             "pretrained_emb_dict_"
