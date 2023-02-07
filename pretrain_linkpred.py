@@ -1,31 +1,15 @@
 import argparse
-
-from loader import BioDataset
-from util import ScorePredictor
-from model import GNN
-
-import dgl
-import dgl.function as fn
-import dgl.nn.pytorch as dglnn
-import torch
-import pandas as pd
-import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-import torch.multiprocessing as mp
-
-import sklearn.linear_model as lm
-import sklearn.metrics as skm
-from sklearn.metrics import roc_auc_score
-from sklearn.preprocessing import LabelEncoder
-
-
-from tqdm import tqdm
-import numpy as np
-import pandas as pd
 import os
 import pickle
+
+import dgl
+import numpy as np
+import torch
+from tqdm import tqdm
+
+from loader import BioDataset
+from model import GNN
+from util import ScorePredictor
 
 
 def blockloader(graph, batch_size, num_workers):
@@ -242,7 +226,7 @@ def main():
 
     # 2. save model
     model_name = (
-        str(args.gnn_type) + "_" + str(args.epochs) + "_" + str(args.emb_dim) + ".pth"
+            str(args.gnn_type) + "_" + str(args.epochs) + "_" + str(args.emb_dim) + ".pth"
     )
     model_path = os.path.join('model', model_name)
     torch.save(model.state_dict(), model_path)
@@ -275,7 +259,7 @@ def main():
 
 
 def save_emb(
-    graph, idx_node_map, idx_node_id_map, epoch, emb_dim, gnn_type, use_SRRSC_emb
+        graph, idx_node_map, idx_node_id_map, epoch, emb_dim, gnn_type, use_SRRSC_emb
 ):
     node_feature_dict = {}
     for ntype in graph.ntypes:
@@ -290,13 +274,13 @@ def save_emb(
         emb_name = "pretrained_emb_dict_SRRSC_linkpred_" + str(epoch) + '.pkl'
     else:
         emb_name = (
-            "pretrained_emb_dict_"
-            + str(epoch)
-            + "_"
-            + str(emb_dim)
-            + "_"
-            + str(gnn_type)
-            + '.pkl'
+                "pretrained_emb_dict_"
+                + str(epoch)
+                + "_"
+                + str(emb_dim)
+                + "_"
+                + str(gnn_type)
+                + '.pkl'
         )
 
     emb_path = os.path.join('pretrain_emb', emb_name)
@@ -306,4 +290,3 @@ def save_emb(
 
 if __name__ == "__main__":
     main()
-

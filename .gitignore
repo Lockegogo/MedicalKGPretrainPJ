@@ -3,7 +3,7 @@ data/
 model/
 results/
 pretrain_emb/
-
+.idea/
 
 best_MLP_model.pt
 pretrained_emb_dict.pkl

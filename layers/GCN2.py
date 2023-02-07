@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import numpy as np
 
 
 class GCN(nn.Module):
@@ -58,8 +56,8 @@ class DGCN(nn.Module):
 
     def forward(self, uv_adj, vu_adj, ufea, vfea):
         # emb (batch_size, ft)
-#         u = F.dropout(ufea, self.drop_prob, training=self.training)
-#         v = F.dropout(vfea, self.drop_prob, training=self.training)
+        # u = F.dropout(ufea, self.drop_prob, training=self.training)
+        # v = F.dropout(vfea, self.drop_prob, training=self.training)
         
         vu = self.u_gc1(vu_adj, ufea)
         uv = self.v_gc1(uv_adj, vfea)

@@ -1,9 +1,9 @@
-import numpy as np
+import copy
+
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+
 from layers import *
-import copy
 
 
 class modeler(nn.Module):
@@ -26,7 +26,6 @@ class modeler(nn.Module):
         )
 
         # nt_rel
-
         for t, rels in self.nt_rel.items():  # {note_type: [rel1, rel2]}
 
             self.fc[t] = FullyConnect(
@@ -34,6 +33,7 @@ class modeler(nn.Module):
                 args.out_ft,
                 drop_prob=self.args.drop_prob,
             )
+
             self.disc2[t] = Discriminator(args.emb_dim, args.out_ft)
 
             for rel in rels:
@@ -54,18 +54,9 @@ class modeler(nn.Module):
             )
 
     def forward(self, adj_dict, ft_dict):
-        totalLoss = 0.0
-        reg_loss = 0.0
 
-        # # 虽然是异构图，但是没有用字典形式，而是记录下了不同类别的节点的 index
-        # embs1 = torch.zeros((self.args.node_size, self.args.hid_units)).to(
-        #     self.device
-        # )
-        # embs2 = torch.zeros((self.args.node_size, self.args.out_ft)).to(
-        #     self.device
-        # )
-        # # 注意：hid_units 和 out_ft 大小保持一致
-
+        # 虽然是异构图，但是没有用字典形式，而是记录下了不同类别的节点的 index
+        # 注意：hid_units 和 out_ft 大小保持一致
         # 和之前的实现保持一致，还是将 emb 写成 dict 的形式
         embs1 = copy.deepcopy(ft_dict)
         embs2 = copy.deepcopy(ft_dict)
@@ -74,11 +65,11 @@ class modeler(nn.Module):
             vec = []
             for j, rel in enumerate(rels):
                 t = rel.split('-')[1]
-                # graph[n][j]：第 n 类节点的第 j 个关系的邻接矩阵？
-                # mean_neighbor = torch.spmm(graph[n][j], features[self.args.node_cnt[t]])
+                # (4328, 256)
                 mean_neighbor = torch.spmm(adj_dict[n][t], ft_dict[t])
 
                 v = self.bnn['0' + rel](mean_neighbor)
+                # (4328, 256)
                 vec.append(v)  # (1, Nt, ft)
 
             # (2, 4328, 256)
@@ -95,14 +86,12 @@ class modeler(nn.Module):
             # embs1[self.args.node_cnt[n]] = v_summary
             embs1[n] = v_summary
 
-        # 用学习到的 emb 再来一遍
-        # 来实现 2-hop 的编码吗？
+        # 用学习到的 emb 再来一遍，实现 2-hop 的编码吗？
         for n, rels in self.nt_rel.items():  # p: [[Nei(p-a), Nei(p-c)]]  (Np, Nprel)
             vec = []
             for j, rel in enumerate(rels):
                 t = rel.split('-')[-1]
 
-                # mean_neighbor = torch.spmm(graph[n][j], embs1[self.args.node_cnt[t]])
                 mean_neighbor = torch.spmm(adj_dict[n][t], embs1[t])
 
                 v = self.bnn['1' + rel](mean_neighbor)
@@ -116,14 +105,13 @@ class modeler(nn.Module):
             else:
                 v_summary = torch.mean(vec, 0)  # (Nt, hd)
 
+            # # 实验效果不好
+            # # 1. 如果只是单独进行 SRRSC 的预训练，没有必要把 summary 和 原始特征拼接起来，因为原始特征是随机初始化的，没有意义
+            # # 2. 如果是先用 link pred 预训练，然后再用 SRRSC，倒是可以这么操作，看看会不会对结果更好一点
+            # if self.args.use_linkpred_emb:
+            #     v_cat = torch.hstack((v_summary, ft_dict[n]))
+            #     v_summary = self.fc[n](v_cat)
 
-            ## 这里有点问题
-            # 1. 如果只是单独进行 SRRSC 的预训练，没有必要把 summary 和 原始特征拼接起来，因为原始特征是随机初始化的，没有意义
-            # 2. 如果是先用 link pred 预训练，然后再用 SRRSC，倒是可以这么操作，看看会不会对结果更好一点
-            v_cat = torch.hstack((v_summary, ft_dict[n]))
-            v_summary = self.fc[n](v_cat)
-
-            # embs2[self.args.node_cnt[n]] = v_summary
             embs2[n] = v_summary
 
         return embs2
@@ -131,8 +119,6 @@ class modeler(nn.Module):
     def loss2(self, embs2, ft_dict, adj_dict):
 
         totalLoss = 0.0
-        # embs = torch.zeros((self.args.node_size, self.args.out_ft)).to(self.device)
-        embs = copy.deepcopy(ft_dict)
 
         coef = self.args.lamb
 
@@ -140,41 +126,47 @@ class modeler(nn.Module):
 
             # nb = len(self.args.node_cnt[n])
             nb = len(ft_dict[n])
-            ones = torch.ones(nb).to(self.device)
-            zeros = torch.zeros(nb).to(self.device)
-            lbl = torch.cat((ones, zeros), 0).squeeze()
-
             shuf_index = torch.randperm(nb).to(self.device)
 
-            # vec = embs2[self.args.node_cnt[n]]
             vec = embs2[n]
-
             fvec = vec[shuf_index]
 
-            # a = nn.Softmax()(features[self.args.node_cnt[n]])
-            a = nn.Softmax()(ft_dict[n])
+            # Intrinsic Contrast: 学习的节点嵌入和原始属性的关系，暂时先不用
+            # 后续进一步优化的时候，如果采用 link pred 的预训练向量进行初始化，倒是可以考虑加上这部分损失
+            # 但是如果不进行联合训练，只使用单个任务，随机初始化的向量是没有意义的
 
-            logits_pos = self.disc2[n](a, vec)
-            logits_neg = self.disc2[n](a, fvec)
-            logits = torch.hstack((logits_pos, logits_neg))
+            ones = torch.ones(nb).to(self.device)
 
-            totalLoss += 1.0 * self.b_xent(logits, lbl)
+            # zeros = torch.zeros(nb).to(self.device)
+            # lbl = torch.cat((ones, zeros), 0).squeeze()
+            # a = nn.Softmax()(ft_dict[n])
+            # logits_pos = self.disc2[n](a, vec)
+            # logits_neg = self.disc2[n](a, fvec)
+            # logits = torch.hstack((logits_pos, logits_neg))
+
+            # totalLoss += 1.0 * self.b_xent(logits, lbl)
 
             for j, rel in enumerate(rels):
                 t = rel.split('-')[-1]
 
-                # mean_neighbor = torch.spmm(graph[n][j], embs2[self.args.node_cnt[t]])
+                # 这里直接求 mean 是不是还可以再提升一下？
                 mean_neighbor = torch.spmm(adj_dict[n][t], embs2[t])
 
+                # *：逐元素相乘（对应位置），类似于 torch.mul()
+                # 回忆一般的矩阵乘法：torch.mm(), torch.bmm(), torch.matmul()
                 logits_pos = (vec * mean_neighbor).sum(-1).view(-1)
                 logits_neg = (fvec * mean_neighbor).sum(-1).view(-1)
 
+                # 注意这个 marginloss 函数
+                # 前四个参数为 input1, input2, target, margin=self.margin
+                # input1 和 input2 是给定的待排序的两个输入，target 代表真实的标签，当 target=1 时，input1 应该排在 input2 前面
+                # 计算公式为 loss = max(0, -target * (input1 - input2) + margin)
                 totalLoss += coef * self.marginloss(
                     torch.sigmoid(logits_pos), torch.sigmoid(logits_neg), ones
                 )
 
                 # 2-hop proximity
-                logits = []
+                # logits = []
                 for k, nr in enumerate(self.nt_rel[t]):
                     tt = nr.split('-')[-1]
 
@@ -189,6 +181,5 @@ class modeler(nn.Module):
                     totalLoss += (1 - coef) * self.marginloss(
                         torch.sigmoid(logits_pos), torch.sigmoid(logits_neg), ones
                     )
-
 
         return totalLoss

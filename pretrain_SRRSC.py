@@ -1,38 +1,19 @@
 import argparse
-from layers import *
-
-# from layers import modeler
-
-from loader import BioDataset
+import os
+import warnings
 
 import dgl
-import dgl.function as fn
-import dgl.nn.pytorch as dglnn
+import numpy as np
 import torch
-import pandas as pd
-import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-import torch.multiprocessing as mp
 
-
-from tqdm import tqdm
-import numpy as np
-import pandas as pd
-import os
-
-from utils import load_data
-import warnings
+from layers import *
+from loader import BioDataset
 
 warnings.filterwarnings('ignore')
 import pickle as pkl
-
-import random
-import time
+from collections import defaultdict
 
 import matplotlib.pyplot as plt
-from collections import defaultdict
 
 
 def main():
@@ -52,7 +33,7 @@ def main():
     parser.add_argument(
         '--epochs',
         type=int,
-        default=10000,
+        default=1000,
         help='number of epochs to train (default: 6)',
     )
     parser.add_argument(
@@ -78,9 +59,9 @@ def main():
     parser.add_argument('--gnn_type', type=str, default="GAT")
     parser.add_argument('--use_info', type=str, default=False)
     parser.add_argument('--use_linkpred_emb', type=str, default=False)
-    parser.add_argument('--use_SRRSC_emb', type=str, default=True)
+    parser.add_argument('--use_SRRSC_emb', type=str, default=False)
 
-    ## SRRSC
+    # SRRSC
     parser.add_argument('--hid_units', type=int, default=256)
     parser.add_argument('--hid_units2', type=int, default=256)
     parser.add_argument('--out_ft', type=int, default=256)
@@ -92,8 +73,8 @@ def main():
     parser.add_argument(
         '--lamb',
         type=float,
-        default=0.5,
-        help='coefficient for the losses in node task',
+        default=1,
+        help='coefficient for the losses',
     )
     parser.add_argument('--isBias', action='store_true', default=False)
 
@@ -110,6 +91,9 @@ def main():
         default=0,
         help='number of workers for dataset loading',
     )
+
+    parser.add_argument('--emb_path', type=str, default="pretrained_emb_dict_SRRSC.pkl")
+
     args = parser.parse_args()
 
     torch.manual_seed(args.runseed)
@@ -185,10 +169,14 @@ def main():
                 print("Epoch {}, loss {:.5}".format(epoch, train_loss))
 
         # outs = embs.detach().cpu().numpy()
-        outs = embs
+        # outs = embs
+
+        outs = dict()
+        for k, v in embs.items():
+            outs[k] = v.detach().cpu().numpy()
 
         # plot
-        plot(loss_list, args.epochs, args.use_linkpred_emb, args.use_SRRSC_emb)
+        # plot(loss_list, args.epochs, args.use_linkpred_emb, args.use_SRRSC_emb)
 
         return outs
 
@@ -202,11 +190,12 @@ def main():
         args.epochs,
         args.use_linkpred_emb,
         args.use_SRRSC_emb,
+        args.emb_path
     )
 
 
 def save_emb(
-    emb, idx_node_map, idx_node_id_map, epoch, use_linkpred_emb, use_SRRSC_emb
+        emb, idx_node_map, idx_node_id_map, epoch, use_linkpred_emb, use_SRRSC_emb, emb_name
 ):
     node_feature_dict = {}
 
@@ -214,14 +203,15 @@ def save_emb(
         node_feature_dict[ntype] = {}
         for i in range(emb[ntype].shape[0]):
             node_name = idx_node_id_map[ntype][i]
-            node_feature_dict[ntype][node_name] = emb[ntype][i].cpu().tolist()
+            # node_feature_dict[ntype][node_name] = emb[ntype][i].cpu().tolist()
+            node_feature_dict[ntype][node_name] = emb[ntype][i]
 
-    if use_linkpred_emb:
-        emb_name = "pretrained_emb_dict_linkpred_SRRSC_" + str(epoch) + '.pkl'
-    elif use_SRRSC_emb:
-        emb_name = "pretrained_emb_dict_SRRSC_" + str(epoch + 10000) + '.pkl'
-    else:
-        emb_name = "pretrained_emb_dict_SRRSC_" + str(epoch) + '.pkl'
+    # if use_linkpred_emb:
+    #     emb_name = "pretrained_emb_dict_linkpred_SRRSC_" + str(epoch) + '.pkl'
+    # elif use_SRRSC_emb:
+    #     emb_name = "pretrained_emb_dict_SRRSC_" + str(epoch + 10000) + '.pkl'
+    # else:
+    #     emb_name = "pretrained_emb_dict_SRRSC_" + str(epoch) + '.pkl'
 
     emb_path = os.path.join('pretrain_emb', emb_name)
     with open(emb_path, 'wb') as f:
@@ -250,4 +240,3 @@ def plot(train_loss, epoch, use_linkpred_emb, use_SRRSC_emb):
 
 if __name__ == "__main__":
     main()
-

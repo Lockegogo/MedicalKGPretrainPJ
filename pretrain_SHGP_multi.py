@@ -1,44 +1,22 @@
 import argparse
-
-from loader import BioDataset
-from util import ScorePredictor
-from model import GNN
+import os
+import warnings
 
 import dgl
-import dgl.function as fn
-import dgl.nn.pytorch as dglnn
-import torch
-import pandas as pd
 import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
-import torch.multiprocessing as mp
 
-import sklearn.linear_model as lm
-import sklearn.metrics as skm
-from sklearn.metrics import roc_auc_score
-from sklearn.preprocessing import LabelEncoder
-
-from tqdm import tqdm
-import numpy as np
-import pandas as pd
-import os
-
-from utils import load_data, set_params
-from utils.evaluate import evaluate
-from utils.cluster import kmeans
-from module.att_lpa import *
+from loader import BioDataset
 from module.att_hgcn import ATT_HGCN
-import warnings
+from module.att_lpa import *
+from utils import load_data
 
 warnings.filterwarnings('ignore')
 import pickle as pkl
 
-import random
-import time
-
 import matplotlib.pyplot as plt
+
+
 
 
 def main():

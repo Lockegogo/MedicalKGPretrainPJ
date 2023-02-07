@@ -1,35 +1,17 @@
 import argparse
 
-from loader import BioDataset
-from dataloader import DataLoaderFinetune
-from util import split_train_test
-from model import GNN, MLPPredictor
-from result_analysis import plot
-
 import dgl
-import dgl.function as fn
-import dgl.nn.pytorch as dglnn
+import numpy as np
 import torch
-import pandas as pd
-import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-import os
-
-
 from sklearn.metrics import roc_auc_score
-
-
 from tqdm import tqdm
-import numpy as np
-import pandas as pd
-import os
-import pickle
+
+from dataloader import DataLoaderFinetune
+from model import MLPPredictor
+from util import split_train_test
 
 
-## link prediction for drug-target: dti.csv ##
-
+# link prediction for drug-target: dti.csv #
 
 def compute_loss_homo(pos_score, neg_score):
     n_edges = pos_score.shape[0]
@@ -145,7 +127,7 @@ def main():
     # set up dataset
     dataset_path = 'data/BioKG'
     dataset = DataLoaderFinetune(dPath=dataset_path)
-    pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_SRRSC_10000.pkl'
+    pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_SRRSC_1000_9.pkl'
     graph, idx_node_map, idx_node_id_map = dataset.to_graph(
         emb_dim=args.emb_dim,
         use_info=args.use_info,

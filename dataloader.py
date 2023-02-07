@@ -1,25 +1,13 @@
-## For data
-import pandas as pd
-import numpy as np
-
-## For machine learning
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.decomposition import PCA
-
-import dgl
-import dgl.function as fn
-import dgl.nn.pytorch as dglnn
-import torch
-import pandas as pd
-import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
-
 import os
 import pickle
 
+import dgl
+import pandas as pd
+import torch
+import torch.nn as nn
+from sklearn.decomposition import PCA
 
-## drug-target
+from sklearn.preprocessing import MinMaxScaler
 
 
 class DataLoaderFinetune:
