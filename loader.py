@@ -189,7 +189,7 @@ class BioDataset:
             # 使用链接预测预训练的节点向量进行初始化
             pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_6_256_GAT.pkl'
         elif use_SRRSC:
-            pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_SRRSC_10000.pkl'
+            pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_link_SRRSC_together_100_2.pkl'
 
         # read emb dict
         with open(pretrained_emb_path, 'rb') as f:

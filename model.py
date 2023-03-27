@@ -3,7 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 
-## GCN
+
+# GCN
 class GCN(nn.Module):
     def __init__(self, in_feat, hidden_feat, out_feat, rel_names):
         super().__init__()
@@ -48,7 +49,6 @@ class GAT(nn.Module):
         self.out_feat = out_feat
 
     def forward(self, blocks, x):
-
         x = self.conv1(blocks[0], x)
         x = {k: F.relu(v.reshape(-1, self.hidden_feat * 2)) for k, v in x.items()}
         x = self.conv2(blocks[1], x)
@@ -89,8 +89,9 @@ class GNN(nn.Module):
     """
     Output: representations
     """
+
     def __init__(
-        self, in_features, hidden_features, out_features, etypes, gnn_type="GAT"
+            self, in_features, hidden_features, out_features, etypes, gnn_type="GAT"
     ):
         super(GNN, self).__init__()
 
@@ -106,10 +107,10 @@ class GNN(nn.Module):
         return h
 
 
-
 class MLPPredictor(nn.Module):
     def __init__(self, h_feats):
         super().__init__()
+
         self.W1 = nn.Linear(h_feats * 2, h_feats)
         self.W2 = nn.Linear(h_feats, 1)
 
@@ -135,8 +136,6 @@ class MLPPredictor(nn.Module):
             g.ndata['feature'] = h
             g.apply_edges(self.apply_edges)
             return g.edata['score']
-
-
 
 
 if __name__ == "__main__":

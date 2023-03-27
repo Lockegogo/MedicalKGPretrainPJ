@@ -161,7 +161,7 @@ def main():
     parser.add_argument('--gnn_type', type=str, default="GAT")
 
     parser.add_argument('--use_info', type=str, default=False)
-    parser.add_argument('--use_SRRSC_emb', type=str, default=False)
+    parser.add_argument('--use_SRRSC_emb', type=str, default=True)
 
     parser.add_argument(
         '--seed', type=int, default=42, help="Seed for splitting dataset."
@@ -191,7 +191,7 @@ def main():
     dataset_path = 'data/BioKG'
     dataset = BioDataset(dPath=dataset_path)
     graph, idx_node_map, idx_node_id_map = dataset.to_graph(
-        emb_dim=args.emb_dim, use_info=args.use_info
+        emb_dim=args.emb_dim, use_info=args.use_info, use_SRRSC_emb=args.use_SRRSC_emb
     )
     dataloader = blockloader(
         graph, batch_size=args.batch_size, num_workers=args.num_workers

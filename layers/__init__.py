@@ -4,3 +4,4 @@ from .attention import Attention, NodeAttention, SemanticAttention, LocalAttenti
 from .fc import FullyConnect, FullyConnect2
 from .GCN2 import DGCN
 from .modeler import modeler
+from .MyGCN import MyGCN

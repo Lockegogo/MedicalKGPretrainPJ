@@ -1,4 +1,5 @@
 import argparse
+import pickle
 
 import dgl
 import numpy as np
@@ -33,14 +34,14 @@ def LinkPredictionEvaluate(model, test_pos_graph, test_neg_graph):
 
 
 def train(
-    args,
-    model,
-    optimizer,
-    train_pos_graph,
-    train_neg_graph,
-    val_pos_graph,
-    val_neg_graph,
-    best_model_path,
+        args,
+        model,
+        optimizer,
+        train_pos_graph,
+        train_neg_graph,
+        val_pos_graph,
+        val_neg_graph,
+        best_model_path,
 ):
     best_accuracy = 0
     train_loss = []
@@ -88,7 +89,7 @@ def main():
         '--decay', type=float, default=0, help='weight decay (default: 0)'
     )
     parser.add_argument(
-        '--emb_dim', type=int, default=256, help='embedding dimensions (default: 256)'
+        '--emb_dim', type=int, default=512, help='embedding dimensions (default: 128)'
     )
     parser.add_argument('--use_info', type=str, default=True)
     parser.add_argument('--use_pretrain_emb', type=str, default=True)
@@ -123,11 +124,32 @@ def main():
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.runseed)
 
-
     # set up dataset
     dataset_path = 'data/BioKG'
     dataset = DataLoaderFinetune(dPath=dataset_path)
-    pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_SRRSC_linkpred_6.pkl'
+    # list 格式
+    pretrained_emb_path_1 = 'pretrain_emb/pretrained_emb_dict_6_256_GAT.pkl'
+    # numpy 格式
+    pretrained_emb_path_2 = 'pretrain_emb/pretrained_emb_dict_SRRSC_1000.pkl'
+
+    # with open(pretrained_emb_path_1, 'rb') as f1:
+    #     node_emb_dict_1 = pickle.load(f1)
+    #     # print(node_emb_dict['GENE']['Rbm47'])
+    #     with open(pretrained_emb_path_2, 'rb') as f2:
+    #         node_emb_dict_2 = pickle.load(f2)
+
+    #         # 把两者拼接起来：
+    #         for node_type in node_emb_dict_1:
+    #             for node_name in node_emb_dict_1[node_type]:
+    #                 # 要先转换以下才能拼接
+    #                 temp = node_emb_dict_2[node_type][node_name].tolist()
+    #                 node_emb_dict_1[node_type][node_name] = node_emb_dict_1[node_type][node_name] + temp
+
+    #         pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_joint.pkl'
+    #         with open(pretrained_emb_path, 'wb') as f:
+    #             pickle.dump(node_emb_dict_1, f, pickle.HIGHEST_PROTOCOL)
+
+    pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_joint.pkl'
     graph, idx_node_map, idx_node_id_map = dataset.to_graph(
         emb_dim=args.emb_dim,
         use_info=args.use_info,
@@ -179,4 +201,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -16,6 +16,7 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 
 
+
 def main():
     # Training settings
     parser = argparse.ArgumentParser(
@@ -69,14 +70,14 @@ def main():
     parser.add_argument('--isAtt', action='store_true', default=True)
     parser.add_argument(
         # margin 越大，不同类别之间的区分越强！
-        '--margin', type=float, default=0.8, help='coefficient for the margin loss'
+        '--margin',
+        type=float,
+        default=0.8,
+        help='coefficient for the margin loss',
     )
     parser.add_argument('--drop_prob', type=float, default=0.0)
     parser.add_argument(
-        '--lamb',
-        type=float,
-        default=1,
-        help='coefficient for the losses',
+        '--lamb', type=float, default=1, help='coefficient for the losses',
     )
     parser.add_argument('--isBias', action='store_true', default=False)
 
@@ -117,8 +118,6 @@ def main():
         emb_dim=args.emb_dim,
         use_info=args.use_info,
         use_linkpred_emb=args.use_linkpred_emb,
-        # 使用之前预训练 10000 次的继续训练
-        use_SRRSC_emb=args.use_SRRSC_emb,
     )
 
     def load_data(graph):
@@ -127,6 +126,10 @@ def main():
         # adj_dict 邻接矩阵
         adj_dict = dict([(k, {}) for k in graph.ntypes])
 
+        # 用于连接预测的负采样
+        pos_sample = dict([(k, {}) for k in graph.ntypes])
+        neg_sample = dict([(k, {}) for k in graph.ntypes])
+
         # nt_rel 关系模式
         nt_rel = defaultdict(list)
 
@@ -134,12 +137,35 @@ def main():
             for etype in graph.canonical_etypes:
                 if etype[0] == k:
                     adj_dict[k][etype[2]] = graph.adj(etype=etype)
+
+                    pos_sample[k][etype[2]] = adj_dict[k][etype[2]]._indices()
+
+                    # generate a random permutation of indices from 0 to pos_num - 1
+                    pos_num = pos_sample[k][etype[2]].shape[1]
+                    perm = torch.randperm(pos_num)
+                    # select the first half of the permutation
+                    half = perm[: (pos_num // 4) * 3]
+                    # select the corresponding edges from pos_sample
+                    pos_sample[k][etype[2]] = torch.index_select(
+                        pos_sample[k][etype[2]], dim=1, index=half
+                    )
+
+                    # 这里为什么正负样本采样数量不一样？
+                    neg_sample[k][
+                        etype[2]
+                    ] = dgl.sampling.global_uniform_negative_sampling(
+                        graph,
+                        num_samples=pos_sample[k][etype[2]].shape[1],
+                        exclude_self_loops=True,
+                        etype=etype,
+                        replace=False,
+                    )
                     rel = str(etype[0]) + '-' + str(etype[2])
                     nt_rel[k].append(rel)
 
-        return ft_dict, adj_dict, nt_rel
+        return ft_dict, adj_dict, nt_rel, pos_sample, neg_sample
 
-    ft_dict, adj_dict, nt_rel = load_data(graph)
+    ft_dict, adj_dict, nt_rel, pos_sample, neg_sample = load_data(graph)
 
     def train():
         """
@@ -160,7 +186,7 @@ def main():
             model.train()
             optimizer.zero_grad()
             embs = model(adj_dict, ft_dict)
-            loss = model.loss2(embs, ft_dict, adj_dict)
+            loss = model.loss_total(embs, ft_dict, adj_dict, pos_sample, neg_sample)
             loss.backward()
             optimizer.step()
             train_loss = loss.item()
@@ -192,12 +218,12 @@ def main():
         args.epochs,
         args.use_linkpred_emb,
         args.use_SRRSC_emb,
-        args.emb_path
+        args.emb_path,
     )
 
 
 def save_emb(
-        emb, idx_node_map, idx_node_id_map, epoch, use_linkpred_emb, use_SRRSC_emb, emb_name
+    emb, idx_node_map, idx_node_id_map, epoch, use_linkpred_emb, use_SRRSC_emb, emb_name
 ):
     node_feature_dict = {}
 

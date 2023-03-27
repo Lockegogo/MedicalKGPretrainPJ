@@ -15,7 +15,6 @@ class GCN(nn.Module):
         self.dropout = dropout
         self.act = nn.ReLU()
 
-
     def forward(self, adj, x):
         support = torch.mm(x, self.weight)
         output = torch.spmm(adj, support)
@@ -29,25 +28,25 @@ class DGCN(nn.Module):
         super().__init__()
 
         self.v_gc1 = GCN(nfeat=v_in_ft,
-                        nhid=out_ft,
-                        dropout=drop_prob)
+                         nhid=out_ft,
+                         dropout=drop_prob)
         self.v_gc2 = GCN(nfeat=out_ft,
-                        nhid=out_ft,
-                        dropout=drop_prob)
+                         nhid=out_ft,
+                         dropout=drop_prob)
 
         self.u_gc1 = GCN(nfeat=u_in_ft,
-                        nhid=out_ft,
-                        dropout=drop_prob)
+                         nhid=out_ft,
+                         dropout=drop_prob)
         self.u_gc2 = GCN(nfeat=out_ft,
-                        nhid=out_ft,
-                        dropout=drop_prob)
+                         nhid=out_ft,
+                         dropout=drop_prob)
         self.u_fc = nn.Linear(out_ft + u_in_ft, out_ft)
         nn.init.xavier_uniform_(self.u_fc.weight.data)
         self.v_fc = nn.Linear(out_ft + v_in_ft, out_ft)
         nn.init.xavier_uniform_(self.v_fc.weight.data)
-        self.u_fc2 = nn.Linear(out_ft , out_ft)
+        self.u_fc2 = nn.Linear(out_ft, out_ft)
         nn.init.xavier_uniform_(self.u_fc.weight.data)
-        self.v_fc2 = nn.Linear(out_ft , out_ft)
+        self.v_fc2 = nn.Linear(out_ft, out_ft)
         nn.init.xavier_uniform_(self.v_fc.weight.data)
 
         self.act = act
@@ -58,7 +57,7 @@ class DGCN(nn.Module):
         # emb (batch_size, ft)
         # u = F.dropout(ufea, self.drop_prob, training=self.training)
         # v = F.dropout(vfea, self.drop_prob, training=self.training)
-        
+
         vu = self.u_gc1(vu_adj, ufea)
         uv = self.v_gc1(uv_adj, vfea)
 
@@ -68,8 +67,8 @@ class DGCN(nn.Module):
         Hv = torch.cat((vu2, vfea), dim=1)
         Hu = torch.cat((uv2, ufea), dim=1)
 
-        Hv = nn.ReLU()(self.v_fc(Hv))  #  (batch_size, d)
-        Hu = nn.ReLU()(self.u_fc(Hu))  #  (batch_size, d)
+        Hv = nn.ReLU()(self.v_fc(Hv))  # (batch_size, d)
+        Hu = nn.ReLU()(self.u_fc(Hu))  # (batch_size, d)
         Hv = self.v_fc2(Hv)
         Hu = self.u_fc2(Hu)
 
