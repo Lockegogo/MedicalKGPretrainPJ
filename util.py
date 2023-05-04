@@ -1,7 +1,6 @@
 import dgl
-import torch.nn as nn
 import numpy as np
-import pickle
+import torch.nn as nn
 
 
 class ScorePredictor(nn.Module):

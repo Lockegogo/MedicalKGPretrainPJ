@@ -1,31 +1,15 @@
 import argparse
-
-from loader import BioDataset
-from util import ScorePredictor
-from model import GNN
-
-import dgl
-import dgl.function as fn
-import dgl.nn.pytorch as dglnn
-import torch
-import pandas as pd
-import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-import torch.multiprocessing as mp
-
-import sklearn.linear_model as lm
-import sklearn.metrics as skm
-from sklearn.metrics import roc_auc_score
-from sklearn.preprocessing import LabelEncoder
-
-
-from tqdm import tqdm
-import numpy as np
-import pandas as pd
 import os
 import pickle
+
+import dgl
+import numpy as np
+import torch
+from tqdm import tqdm
+
+from loader import BioDataset
+from model import GNN
+from util import ScorePredictor
 
 
 def blockloader(graph, batch_size, num_workers):
@@ -154,7 +138,7 @@ def main():
         help='input batch size for training (default: 1024)',
     )
     parser.add_argument(
-        '--epochs', type=int, default=3, help='number of epochs to train (default: 10)'
+        '--epochs', type=int, default=6, help='number of epochs to train (default: 6)'
     )
     parser.add_argument(
         '--lr', type=float, default=0.001, help='learning rate (default: 0.001)'
@@ -169,7 +153,7 @@ def main():
         help='number of GNN message passing layers (default: 2).',
     )
     parser.add_argument(
-        '--emb_dim', type=int, default=128, help='embedding dimensions (default: 128)'
+        '--emb_dim', type=int, default=256, help='embedding dimensions (default: 256)'
     )
     parser.add_argument(
         '--dropout_ratio', type=float, default=0.5, help='dropout ratio (default: 0.5)'
@@ -177,6 +161,7 @@ def main():
     parser.add_argument('--gnn_type', type=str, default="GAT")
 
     parser.add_argument('--use_info', type=str, default=False)
+    parser.add_argument('--use_SRRSC_emb', type=str, default=True)
 
     parser.add_argument(
         '--seed', type=int, default=42, help="Seed for splitting dataset."
@@ -206,7 +191,7 @@ def main():
     dataset_path = 'data/BioKG'
     dataset = BioDataset(dPath=dataset_path)
     graph, idx_node_map, idx_node_id_map = dataset.to_graph(
-        emb_dim=args.emb_dim, use_info=args.use_info
+        emb_dim=args.emb_dim, use_info=args.use_info, use_SRRSC_emb=args.use_SRRSC_emb
     )
     dataloader = blockloader(
         graph, batch_size=args.batch_size, num_workers=args.num_workers
@@ -241,7 +226,7 @@ def main():
 
     # 2. save model
     model_name = (
-        str(args.gnn_type) + "_" + str(args.epochs) + "_" + str(args.emb_dim) + ".pth"
+            str(args.gnn_type) + "_" + str(args.epochs) + "_" + str(args.emb_dim) + ".pth"
     )
     model_path = os.path.join('model', model_name)
     torch.save(model.state_dict(), model_path)
@@ -259,7 +244,13 @@ def main():
         graph.nodes[key].data['feature'] = value
 
     save_emb(
-        graph, idx_node_map, idx_node_id_map, args.epochs, args.emb_dim, args.gnn_type
+        graph,
+        idx_node_map,
+        idx_node_id_map,
+        args.epochs,
+        args.emb_dim,
+        args.gnn_type,
+        args.use_SRRSC_emb,
     )
     ## if you want to read this emb file:
     # with open("pretrained_emb_dict.pkl",'rb') as f:
@@ -267,7 +258,9 @@ def main():
     #     print(node_emb_dict['GENE']['Rbm47'])
 
 
-def save_emb(graph, idx_node_map, idx_node_id_map, epoch, emb_dim, gnn_type):
+def save_emb(
+        graph, idx_node_map, idx_node_id_map, epoch, emb_dim, gnn_type, use_SRRSC_emb
+):
     node_feature_dict = {}
     for ntype in graph.ntypes:
         node_feature_dict[ntype] = {}
@@ -277,15 +270,19 @@ def save_emb(graph, idx_node_map, idx_node_id_map, epoch, emb_dim, gnn_type):
                 graph.nodes[ntype].data['feature'][i].cpu().tolist()
             )
 
-    emb_name = (
-        "pretrained_emb_dict_"
-        + str(epoch)
-        + "_"
-        + str(emb_dim)
-        + "_"
-        + str(gnn_type)
-        + '.pkl'
-    )
+    if use_SRRSC_emb:
+        emb_name = "pretrained_emb_dict_SRRSC_linkpred_" + str(epoch) + '.pkl'
+    else:
+        emb_name = (
+                "pretrained_emb_dict_"
+                + str(epoch)
+                + "_"
+                + str(emb_dim)
+                + "_"
+                + str(gnn_type)
+                + '.pkl'
+        )
+
     emb_path = os.path.join('pretrain_emb', emb_name)
     with open(emb_path, 'wb') as f:
         pickle.dump(node_feature_dict, f, pickle.HIGHEST_PROTOCOL)
@@ -293,4 +290,3 @@ def save_emb(graph, idx_node_map, idx_node_id_map, epoch, emb_dim, gnn_type):
 
 if __name__ == "__main__":
     main()
-

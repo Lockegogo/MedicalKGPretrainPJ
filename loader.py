@@ -1,22 +1,13 @@
-## For data
-import pandas as pd
-import numpy as np
-
-## For machine learning
-
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.decomposition import PCA
+import os
+import pickle
 
 import dgl
-import dgl.function as fn
-import dgl.nn.pytorch as dglnn
-import torch
-import pandas as pd
 import numpy as np
+import pandas as pd
+import torch
 import torch.nn as nn
-import torch.nn.functional as F
-
-import os
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import MinMaxScaler
 
 
 class BioDataset:
@@ -29,7 +20,6 @@ class BioDataset:
         """
         Load dataset
         """
-
         node_types = os.listdir(self.entities_path)
         # node_types = ['GENE','PROTEIN','PATHWAY','COMPLEX','DISEASE','DISORDER','DRUG']
 
@@ -62,7 +52,8 @@ class BioDataset:
 
         return idx_node_map, idx_node_id_map, edges_u_v
 
-    def to_graph(self, emb_dim, use_info):
+    # 修改一下，改成继续用之前的 emb
+    def to_graph(self, emb_dim, use_info, use_linkpred_emb=False, use_SRRSC_emb=False):
         """
         Data to Heterogeneous Graph
         """
@@ -98,6 +89,13 @@ class BioDataset:
         # use known information to initialize node emb
         if use_info:
             graph = self.info_init(graph, emb_dim, idx_node_id_map)
+
+        # use pretrained emb to initialize node emb
+        if use_linkpred_emb:
+            graph = self.pretrained_init(graph, emb_dim, idx_node_id_map, use_linkpred=True, use_SRRSC=False)
+
+        if use_SRRSC_emb:
+            graph = self.pretrained_init(graph, emb_dim, idx_node_id_map, use_linkpred=False, use_SRRSC=True)
 
         return graph, idx_node_map, idx_node_id_map
 
@@ -183,6 +181,25 @@ class BioDataset:
             "The number of PROTEIN nodes for which no structural information was found is: ",
             notFind,
         )
+
+        return graph
+
+    def pretrained_init(self, graph, emb_dim, idx_node_id_map, use_linkpred, use_SRRSC):
+        if use_linkpred:
+            # 使用链接预测预训练的节点向量进行初始化
+            pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_6_256_GAT.pkl'
+        elif use_SRRSC:
+            pretrained_emb_path = 'pretrain_emb/pretrained_emb_dict_link_SRRSC_together_100_2.pkl'
+
+        # read emb dict
+        with open(pretrained_emb_path, 'rb') as f:
+            node_emb_dict = pickle.load(f)
+
+            for ntype in graph.ntypes:
+                for i in range(graph.num_nodes(ntype)):
+                    node_name = idx_node_id_map[ntype][i]
+                    if node_name in node_emb_dict[ntype]:
+                        graph.nodes[ntype].data['feature'][i] = torch.FloatTensor(node_emb_dict[ntype][node_name])
 
         return graph
 
