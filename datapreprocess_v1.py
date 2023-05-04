@@ -11,13 +11,14 @@ def to_txt(file, name):
 
 
 biokg = pd.read_csv('data/BioKG/kg.csv', index_col=0)
+all_biokg = biokg
+
 
 ## to avoid information leakage
 # dti = pd.read_csv('data/BioKG/dti.csv')
 # all_biokg = pd.concat([biokg, dti])
 # all_biokg.drop_duplicates(inplace=True)
 
-all_biokg = biokg
 
 
 PROTEIN = []
